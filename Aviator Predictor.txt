@@ -1,0 +1,53 @@
+from flask import Flask, render_template_string, jsonify import random from datetime import datetime
+
+app = Flask(name)
+
+Simulated Aviator data (initial dummy values)
+
+data_history = [round(random.uniform(1.0, 10.0), 2) for _ in range(20)]
+
+Basic prediction logic
+
+def predict_next_multiplier(history): avg = sum(history[-10:]) / 10 trend = "safe" if avg > 2.0 else "risky" predicted_range = (round(avg * 0.8, 2), round(avg * 1.2, 2)) return predicted_range, trend
+
+@app.route("/api/data") def get_data(): predicted_range, trend = predict_next_multiplier(data_history) return jsonify({ "history": data_history, "predicted_range": predicted_range, "trend": trend, "timestamp": datetime.utcnow().isoformat() })
+
+@app.route("/") def dashboard(): return render_template_string(""" <!doctype html> <html lang='en'> <head> <meta charset='utf-8'> <title>Aviator Predictor</title> <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <style> body { background: #111; color: white; font-family: sans-serif; text-align: center; padding: 2rem; } canvas { max-width: 600px; margin: auto; } .card { background: #222; padding: 1rem; margin: 1rem auto; border-radius: 12px; width: 300px; box-shadow: 0 0 10px #000; } </style> </head> <body> <h1>🎯 Aviator Predictor</h1> <div class="card"> <p><strong>Predicted Next Multiplier Range:</strong></p> <p id="range">Loading...</p> <p><strong>Trend:</strong> <span id="trend">Loading...</span></p> </div> <canvas id="aviatorChart"></canvas>
+
+<script>
+    async function fetchData() {
+        const res = await fetch('/api/data');
+        const data = await res.json();
+
+        document.getElementById("range").innerText = data.predicted_range[0] + "x - " + data.predicted_range[1] + "x";
+        document.getElementById("trend").innerText = data.trend;
+
+        const ctx = document.getElementById('aviatorChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: Array.from({length: data.history.length}, (_, i) => i + 1),
+                datasets: [{
+                    label: 'Crash Multipliers',
+                    data: data.history,
+                    fill: false,
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    tension: 0.3
+                }]
+            },
+            options: {
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+    }
+
+    fetchData();
+    </script>
+</body>
+</html>
+""")
+
+if name == "main": app.run(debug=True)
+
